@@ -22,6 +22,7 @@ typedef enum {
 
 struct Obj {
   ObjType type; // Type tag.
+  struct Obj* next; // Linked list of allocated objects.
 };
 
 struct ObjString {
