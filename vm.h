@@ -16,6 +16,7 @@ typedef struct {
   uint8_t* ip; // Instruction pointer on the next instruction to be executed.
   Value stack[STACK_MAX]; // VM stack.
   Value* stackTop; // Pointer to the top of the stack.
+  Table globals; // Hash table of global variables.
   Table strings; // Hash table of all strings interned by the vm.
   Obj* objects; // Pointer to the head of allocated objects linked list.
 } VM;
