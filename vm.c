@@ -139,6 +139,17 @@ static InterpreterResult run() {
         pop();
         break;
       }
+      case OP_SET_GLOBAL: {
+        ObjString* name = READ_STRING();
+        // Try to set the variable in the global table using value at top of stack.
+        // If returns true, 'name' refers to a variable that does not exist.
+        if (tableSet(&vm.globals, name, peek(0))) {
+          tableDelete(&vm.globals, name);
+          runtimeError("Undefined variable '%s'.", name->chars);
+          return INTERPRET_RUNTIME_ERR0R;
+        }
+        break;
+      }
       case OP_EQUAL: {
         Value b = pop();
         Value a = pop();
