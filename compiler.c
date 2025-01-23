@@ -41,7 +41,19 @@ typedef struct {
   Precedence precedence;
 } ParseRule;
 
+typedef struct {
+  Token name;
+  int depth;
+} Local;
+
+typedef struct {
+  Local locals[UINT8_COUNT]; // Array of in scope locals.
+  int localCount; // Number of locals in scope.
+  int scopeDepth; // Number of blocks surrounding current code.
+} Compiler;
+
 Parser parser;
+Compiler* current = NULL;
 Chunk* compilingChunk;
 
 static Chunk* currentChunk() {
@@ -134,6 +146,12 @@ static void emitConstant(Value value) {
   emitBytes(OP_CONSTANT, makeConstant(value));
 }
 
+static void initCompiler(Compiler* compiler) {
+  compiler->localCount = 0;
+  compiler->scopeDepth = 0;
+  current = compiler;
+}
+
 static void endCompiler() {
   emitReturn();
 #ifdef DEBUG_PRINT_CODE
@@ -141,6 +159,14 @@ static void endCompiler() {
     disassembleChunk(currentChunk(), "code");
   }
 #endif
+}
+
+static void beginScope() {
+  current->scopeDepth++;
+}
+
+static void endScope() {
+  current->scopeDepth--;
 }
 
 // Forward declarations
@@ -226,6 +252,15 @@ static void expression() {
   parsePrecedence(PREC_ASSIGNMENT);
 }
 
+// block          → "{" declaration* "}" ;
+static void block() {
+  while (!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)) {
+    declaration();
+  }
+
+  consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
+}
+
 static void varDeclaration() {
   uint8_t global = parseVariable("Expect variable name.");
 
@@ -291,11 +326,16 @@ static void declaration() {
 }
 
 // statement      → exprStmt
-//                | printStmt ;
+//                | printStmt
+//                | block ;
 static void statement() {
   if (match(TOKEN_PRINT)) {
     printStatement();
-  } else {
+  } else if (match(TOKEN_LEFT_BRACE)) {
+    beginScope();
+    block();
+    endScope();
+  }else {
     expressionStatement();
   }
 }
@@ -416,6 +456,8 @@ static ParseRule* getRule(TokenType type) {
 
 bool compile(const char* source, Chunk* chunk) {
   initScanner(source);
+  Compiler compiler;
+  initCompiler(&compiler);
   compilingChunk = chunk;
 
   parser.hadError = false;
