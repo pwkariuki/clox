@@ -1,0 +1,12 @@
+class Circle {
+  init(radius) {
+    this.radius = radius;
+  }
+
+  area() {
+    return 3.142 * this.radius * this.radius;
+  }
+}
+
+var circle = Circle(7);
+print circle.area();
