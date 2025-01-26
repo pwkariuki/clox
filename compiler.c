@@ -375,9 +375,17 @@ static void ifStatement() {
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
 
   int thenJump = emitJump(OP_JUMP_IF_FALSE);
+  emitByte(OP_POP); // Pop condition value from stack if truthy.
   statement();
 
-  patchJump(thenJump);
+  int elseJump = emitJump(OP_JUMP); // Jump from end of then branch.
+
+  patchJump(thenJump); // Patch then jump.
+  emitByte(OP_POP); // Pop condition value from stack if falsey.
+
+  // Compile else statement if we find one.
+  if (match(TOKEN_ELSE)) statement();
+  patchJump(elseJump); // Patch else jump.
 }
 
 static void printStatement() {
