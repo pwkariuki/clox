@@ -136,6 +136,15 @@ static void emitBytes(uint8_t byte1, uint8_t byte2) {
     emitByte(byte2);
 }
 
+// control flow backpatching function
+// return offset of the emitted instruction in the chunk
+static int emitJump(uint8_t instruction) {
+    emitByte(instruction); // emit bytecode instruction
+    emitByte(0xff); // 16-bit offset placeholder operand
+    emitByte(0xff);
+    return currentChunk()->count - 2;
+}
+
 // temporarily use OP_RETURN to print values
 static void emitReturn() {
     emitByte(OP_RETURN);
@@ -155,6 +164,19 @@ static uint8_t makeConstant(Value value) {
 // add value to constant table, emit OP_CONSTANT to push onto the stack
 static void emitConstant(Value value) {
     emitBytes(OP_CONSTANT, makeConstant(value));
+}
+
+// replace bytecode operands at the given location with the calculated jump offset
+static void patchJump(int offset) {
+    // -2 to adjust for the bytecode for the jump offset itself.
+    int jump = currentChunk()->count - offset - 2;
+
+    if (jump > UINT16_MAX) {
+        error("Too much code to jump over.");
+    }
+
+    currentChunk()->code[offset] = (jump >> 8) & 0xff;
+    currentChunk()->code[offset + 1] = jump & 0xff;
 }
 
 // compiler initializer
@@ -475,6 +497,18 @@ static void expressionStatement() {
     emitByte(OP_POP);
 }
 
+// compile if statement
+static void ifStatement() {
+    consume(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
+    expression(); // condition expression
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+
+    int thenJump = emitJump(OP_JUMP_IF_FALSE);
+    statement();
+
+    patchJump(thenJump);
+}
+
 // compile rest of print statement
 static void printStatement() {
     expression();
@@ -533,6 +567,8 @@ static void declaration() {
 static void statement() {
     if (match(TOKEN_PRINT)) {
         printStatement();
+    } else if (match(TOKEN_IF)) {
+        ifStatement();
     } else if (match(TOKEN_LEFT_BRACE)) {
         beginScope();
         block();
