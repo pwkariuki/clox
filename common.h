@@ -1,9 +1,9 @@
 //
-// Created by Patrick Kariuki on 1/9/25.
+// Created by Patrick Kariuki on 10/3/25.
 //
 
-#ifndef CLOX_COMMON_H
-#define CLOX_COMMON_H
+#ifndef COMMON_H
+#define COMMON_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -12,6 +12,7 @@
 #define DEBUG_PRINT_CODE
 #define DEBUG_TRACE_EXECUTION
 
+// limit the number of local variables you can have in scope
 #define UINT8_COUNT (UINT8_MAX + 1)
 
-#endif //CLOX_COMMON_H
+#endif //COMMON_H

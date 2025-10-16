@@ -1,5 +1,5 @@
 //
-// Created by Patrick Kariuki on 1/10/25.
+// Created by Patrick Kariuki on 10/6/25.
 //
 
 #ifndef CLOX_VM_H
@@ -11,27 +11,31 @@
 
 #define STACK_MAX 256
 
+// Virtual machine - runs a chunk of code
 typedef struct {
-  Chunk* chunk; // Chunk to be executed by the VM.
-  uint8_t* ip; // Instruction pointer on the next instruction to be executed.
-  Value stack[STACK_MAX]; // VM stack.
-  Value* stackTop; // Pointer to the top of the stack.
-  Table globals; // Hash table of global variables.
-  Table strings; // Hash table of all strings interned by the vm.
-  Obj* objects; // Pointer to the head of allocated objects linked list.
+    Chunk* chunk; // chunk of bytecode being executed
+    uint8_t* ip; // instruction pointer
+    Value stack[STACK_MAX];
+    Value* stackTop; // points to where the next value to be pushed will go
+    Obj* objects; // head to linked list of objects
+    Table globals; // hash table of global variables
+    Table strings; // hash table of interned strings
 } VM;
 
+// result from VM running chunk
 typedef enum {
-  INTERPRET_OK,
-  INTERPRET_COMPILE_ERROR,
-  INTERPRET_RUNTIME_ERR0R
-} InterpreterResult;
+    INTERPRET_OK,
+    INTERPRET_COMPILE_ERROR,
+    INTERPRET_RUNTIME_ERROR,
+} InterpretResult;
 
-extern VM vm; // Expose vm externally.
+extern VM vm; // expose vm externally
 
 void initVM();
 void freeVM();
-InterpreterResult interpret(const char* source);
+// main entrypoint into the VM
+InterpretResult interpret(const char* source);
+// stack protocol methods
 void push(Value value);
 Value pop();
 

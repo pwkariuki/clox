@@ -1,7 +1,6 @@
 //
-// Created by Patrick Kariuki on 1/19/25.
+// Created by Patrick Kariuki on 10/12/25.
 //
-
 #include <stdio.h>
 #include <string.h>
 
@@ -11,67 +10,73 @@
 #include "value.h"
 #include "vm.h"
 
+// initialize Obj state
 #define ALLOCATE_OBJ(type, objectType) \
-  (type*)allocateObject(sizeof(type), objectType)
+    (type*)allocateObject(sizeof(type), objectType)
 
-// Allocate new object of given size on the heap.
+// allocate an object of the given size on the stack
 static Obj* allocateObject(size_t size, ObjType type) {
-  Obj* object = (Obj*)reallocate(NULL, 0, size);
-  object->type = type;
+    Obj* object = (Obj*)reallocate(NULL, 0, size);
+    object->type = type;
 
-  object->next = vm.objects;
-  vm.objects = object;
-  return object;
+    // insert object at head of allocated objects linked list
+    object->next = vm.objects;
+    vm.objects = object;
+    return object;
 }
 
+// create a new ObjString on the heap and initialize its fields
+// kind of like a string object constructor in OOP
 static ObjString* allocateString(char* chars, int length, uint32_t hash) {
-  ObjString* string = ALLOCATE_OBJ(ObjString, OBJ_STRING);
-  string->length = length;
-  string->chars = chars;
-  string->hash = hash;
-  tableSet(&vm.strings, string, NIL_VAL);
-  return string;
+    ObjString* string = ALLOCATE_OBJ(ObjString, OBJ_STRING);
+    string->length = length;
+    string->chars = chars;
+    string->hash = hash;
+    tableSet(&vm.strings, string, NIL_VAL); // intern all created strings
+    return string;
 }
 
+// FNV-1a hash function
 static uint32_t hashString(const char* key, int length) {
-  uint32_t hash = 2166136261u;
-  for (int i = 0; i < length; i++) {
-    hash ^= (uint8_t)key[i];
-    hash *= 16777619;
-  }
-  return hash;
+    uint32_t hash = 2166136261u;
+    for (int i = 0; i < length; i++) {
+        hash ^= (uint8_t)key[i];
+        hash *= 16777619;
+    }
+    return hash;
 }
 
 ObjString* takeString(char* chars, int length) {
-  uint32_t hash = hashString(chars, length);
-  ObjString* interned = tableFindString(&vm.strings, chars, length, hash);
-  if (interned != NULL) {
-    // No longer need duplicate string.
-    FREE_ARRAY(char, chars, length + 1);
-    return interned;
-  }
+    uint32_t hash = hashString(chars, length);
+    // look up the string in the string table first
+    // if found, before we return it, we free the memory for the string that was passed in
+    // since we do not need to duplicate it
+    ObjString* interned = tableFindString(&vm.strings, chars, length, hash);
+    if (interned != NULL) {
+        FREE_ARRAY(char, chars, length + 1);
+        return interned;
+    }
 
-  return allocateString(chars, length, hash);
+    return allocateString(chars, length, hash);
 }
 
 ObjString* copyString(const char* chars, int length) {
-  uint32_t hash = hashString(chars, length);
-  ObjString* interned = tableFindString(&vm.strings, chars, length, hash);
-  if (interned != NULL) {
-    // Return reference instead of copying.
-    return interned;
-  }
+    uint32_t hash = hashString(chars, length);
+    // check for string duplication in intern pool before copying
+    // return a reference to that string of it already exists
+    ObjString* interned = tableFindString(&vm.strings, chars, length, hash);
+    if (interned != NULL) return interned;
 
-  char* heapChars = ALLOCATE(char, length + 1);
-  memcpy(heapChars, chars, length);
-  heapChars[length] = '\0';
-  return allocateString(heapChars, length, hash);
+    char* heapChars = ALLOCATE(char, length + 1);
+    memcpy(heapChars, chars, length);
+    heapChars[length] = '\0';
+    return allocateString(heapChars, length, hash);
 }
 
 void printObject(Value value) {
-  switch (OBJ_TYPE(value)) {
-    case OBJ_STRING:
-      printf("%s", AS_CSTRING(value));
-      break;
-  }
+    switch (OBJ_TYPE(value)) {
+        case OBJ_STRING:
+            printf("%s", AS_CSTRING(value));
+            break;
+    }
 }
