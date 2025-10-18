@@ -54,5 +54,4 @@ void freeChunk(Chunk* chunk);
 // add constant to the chunk
 int addConstant(Chunk* chunk, Value value);
 
-
 #endif //CHUNK_H
