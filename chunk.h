@@ -30,8 +30,9 @@ typedef enum {
     OP_NOT, // unary not (!)
     OP_NEGATE, // unary negation (-)
     OP_PRINT,
-    OP_JUMP_IF_FALSE,
     OP_JUMP,
+    OP_JUMP_IF_FALSE,
+    OP_LOOP,
     OP_RETURN,
 } OpCode;
 
