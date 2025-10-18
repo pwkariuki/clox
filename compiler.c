@@ -52,8 +52,16 @@ typedef struct {
     int depth; // scope depth where local was declared
 } Local;
 
+// function type enum
+typedef enum {
+    TYPE_FUNCTION,
+    TYPE_SCRIPT
+} FunctionType;
+
 // compiler struct
 typedef struct {
+    ObjFunction* function; // implicit top-level function compiler builds
+    FunctionType type; // flag for top-level code or function body
     Local locals[UINT8_COUNT]; // array of all locals in scope at each point of compilation
     int localCount; // number of locals in scope
     int scopeDepth; // number of blocks surrounding the compiling code, 0 for global
@@ -64,7 +72,7 @@ Compiler* current = NULL; // global compiler to track variable scope
 Chunk* compilingChunk; // global chuk pointer
 
 static Chunk* currentChunk() {
-    return compilingChunk;
+    return &current->function->chunk;
 }
 
 static void errorAt(Token* token, const char* message) {
@@ -191,20 +199,32 @@ static void patchJump(int offset) {
 }
 
 // compiler initializer
-static void initCompiler(Compiler* compiler) {
+static void initCompiler(Compiler* compiler, FunctionType type) {
+    compiler->function = NULL;
+    compiler->type = type;
+    compiler->function = newFunction();
     compiler->localCount = 0;
     compiler->scopeDepth = 0;
     current = compiler;
+    // clain stack slot zero for the VM's own internal use
+    Local* local = &current->locals[current->localCount++];
+    local->depth = 0;
+    local->name.start = "";
+    local->name.length = 0;
 }
 
 // wrap up after compiling the chunk
-static void endCompiler() {
+static ObjFunction* endCompiler() {
     emitReturn();
+    ObjFunction* function = current->function;
 #ifdef DEBUG_PRINT_CODE
     if (!parser.hadError) {
-        disassembleChunk(currentChunk(), "code");
+        disassembleChunk(currentChunk(), function->name != NULL
+            ? function->name->chars : "<script>"); // top-level function has no name
     }
 #endif
+
+    return function; // return to `compile()`
 }
 
 // create a new scope
@@ -301,7 +321,8 @@ static void or_(bool canAssign) {
 
 // compile strings
 static void string(bool canAssign) {
-    emitConstant(OBJ_VAL(copyString(parser.previous.start + 1, parser.previous.length - 2)));
+    emitConstant(OBJ_VAL(copyString(parser.previous.start + 1,
+        parser.previous.length - 2)));
 }
 
 // add token's lexeme to the chunk's constant table as a string
@@ -693,12 +714,11 @@ static void statement() {
     }
 }
 
-// parse source code -> bytecode and return if we had an error during the process
-bool compile(const char* source, Chunk* chunk) {
+// parse source codea and return function object if we had no errors
+ObjFunction* compile(const char* source) {
     initScanner(source);
     Compiler compiler;
-    initCompiler(&compiler);
-    compilingChunk = chunk;
+    initCompiler(&compiler, TYPE_SCRIPT);
 
     // init parser
     parser.hadError = false;
@@ -711,6 +731,6 @@ bool compile(const char* source, Chunk* chunk) {
         declaration();
     }
 
-    endCompiler();
-    return !parser.hadError;
+    ObjFunction* function = endCompiler();
+    return parser.hadError ? NULL : function;
 }
