@@ -5,14 +5,20 @@
 #ifndef CLOX_OBJECT_H
 #define CLOX_OBJECT_H
 
+#include "chunk.h"
 #include "common.h"
 #include "value.h"
 
 // macro to extract object type tag from Value
 #define OBJ_TYPE(value)        (AS_OBJ(value)->type)
+
+// macro to check if a value is a string
+#define IS_FUNCTION(value)     isObjType(value, OBJ_FUNCTION)
 // macro to check if a Value is an ObjString*
 #define IS_STRING(value)       isObjType(value, OBJ_STRING)
 
+// cast Value to aon ObjFunction*
+#define AS_FUNCTION(value)     ((ObjFunction*)AS_OBJ(value))
 // cast string Value to ObjString*
 #define AS_STRING(value)       ((ObjString*)AS_OBJ(value))
 // return string character array
@@ -20,6 +26,7 @@
 
 // heap-allocated types
 typedef enum {
+    OBJ_FUNCTION,
     OBJ_STRING,
 } ObjType;
 
@@ -28,12 +35,24 @@ struct Obj {
     struct Obj* next; // intrusive list for memory management
 };
 
+// function object
+typedef struct {
+    Obj obj;
+    int arity; // number of parameters
+    Chunk chunk; // function's compiled bytecode
+    ObjString* name; // function name
+} ObjFunction;
+
+// string object
 struct ObjString {
     Obj obj;
     int length; // number of bytes in character array
     char* chars; // array of characters
     uint32_t hash; // string hashcode
 };
+
+// create a new function
+ObjFunction* newFunction();
 
 // produce an ObjString with concatenated characters
 ObjString* takeString(char* chars, int length);
