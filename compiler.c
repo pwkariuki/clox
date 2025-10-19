@@ -59,7 +59,8 @@ typedef enum {
 } FunctionType;
 
 // compiler struct
-typedef struct {
+typedef struct Compiler {
+    struct Compiler* enclosing; // linked list pointer to enclosing function compiler
     ObjFunction* function; // implicit top-level function compiler builds
     FunctionType type; // flag for top-level code or function body
     Local locals[UINT8_COUNT]; // array of all locals in scope at each point of compilation
@@ -200,12 +201,17 @@ static void patchJump(int offset) {
 
 // compiler initializer
 static void initCompiler(Compiler* compiler, FunctionType type) {
+    compiler->enclosing = current; // capture the enclosing compiler
     compiler->function = NULL;
     compiler->type = type;
     compiler->function = newFunction();
     compiler->localCount = 0;
     compiler->scopeDepth = 0;
     current = compiler;
+    if (type != TYPE_SCRIPT) {
+        current->function->name = copyString(parser.previous.start,
+                                             parser.previous.length);
+    }
     // clain stack slot zero for the VM's own internal use
     Local* local = &current->locals[current->localCount++];
     local->depth = 0;
@@ -224,6 +230,7 @@ static ObjFunction* endCompiler() {
     }
 #endif
 
+    current = current->enclosing;
     return function; // return to `compile()`
 }
 
@@ -503,6 +510,7 @@ static uint8_t parseVariable(const char* errorMessage) {
 
 // mark local variable as init
 static void markInitialized() {
+    if (current->scopeDepth == 0) return; // global scope
     current->locals[current->localCount - 1].depth = current->scopeDepth;
 }
 
@@ -532,6 +540,41 @@ static void block() {
     }
 
     consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
+}
+
+// compile function parameter list and body
+// leaves resulting function object on top of the stack
+static void function(FunctionType type) {
+    Compiler compiler; // function's compiler
+    initCompiler(&compiler, type);
+    beginScope();
+
+    consume(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
+    // function parameters
+    if (!check(TOKEN_RIGHT_PAREN)) {
+        do {
+            current->function->arity++;
+            if (current->function->arity > 255) {
+                errorAtCurrent("Can't have more than 255 parameters.");
+            }
+            uint8_t constant = parseVariable("Expect parameter name.");
+            defineVariable(constant);
+        } while (match(TOKEN_COMMA));
+    }
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
+    consume(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
+    block();
+
+    ObjFunction* function = endCompiler();
+    emitBytes(OP_CONSTANT, makeConstant(OBJ_VAL(function)));
+}
+
+// create and store function in a newly declared variable
+static void funDeclaration() {
+    uint8_t global = parseVariable("Expect function name.");
+    markInitialized();
+    function(TYPE_FUNCTION);
+    defineVariable(global);
 }
 
 // add variable to scope
@@ -677,7 +720,9 @@ static void synchronize() {
 //                | varDecl
 //                | statement ;
 static void declaration() {
-    if (match(TOKEN_VAR)) {
+    if (match(TOKEN_FUN)) {
+        funDeclaration();
+    } else if (match(TOKEN_VAR)) {
         varDeclaration();
     } else {
        statement();
