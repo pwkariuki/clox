@@ -5,16 +5,24 @@
 #ifndef CLOX_VM_H
 #define CLOX_VM_H
 
-#include "chunk.h"
+#include "object.h"
 #include "table.h"
 #include "value.h"
 
-#define STACK_MAX 256
+#define FRAMES_MAX 64
+#define STACK_MAX (FRAMES_MAX * UINT8_COUNT)
+
+// function invocation - single ongoing function call
+typedef struct {
+    ObjFunction* function; // function's metadata
+    uint8_t* ip; // return address of the caller's CallFrame
+    Value* slots; // first slot function can use on the VM's value stack
+} CallFrame;
 
 // Virtual machine - runs a chunk of code
 typedef struct {
-    Chunk* chunk; // chunk of bytecode being executed
-    uint8_t* ip; // instruction pointer
+    CallFrame frames[FRAMES_MAX]; // callframe stack
+    int frameCount; // callframe height - number of ongoing function calls
     Value stack[STACK_MAX];
     Value* stackTop; // points to where the next value to be pushed will go
     Obj* objects; // head to linked list of objects
