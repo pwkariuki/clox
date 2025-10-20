@@ -14,11 +14,16 @@
 
 // macro to check if a value is a string
 #define IS_FUNCTION(value)     isObjType(value, OBJ_FUNCTION)
+// macro to check if a value is a native function
+#define IS_NATIVE(value)       isObjType(value, OBJ_NATIVE);
 // macro to check if a Value is an ObjString*
 #define IS_STRING(value)       isObjType(value, OBJ_STRING)
 
 // cast Value to aon ObjFunction*
 #define AS_FUNCTION(value)     ((ObjFunction*)AS_OBJ(value))
+// extract function pointer from Value representing native function
+#define AS_NATIVE(value) \
+    (((ObjNative*)AS_OBJ(value))->function)
 // cast string Value to ObjString*
 #define AS_STRING(value)       ((ObjString*)AS_OBJ(value))
 // return string character array
@@ -27,6 +32,7 @@
 // heap-allocated types
 typedef enum {
     OBJ_FUNCTION,
+    OBJ_NATIVE,
     OBJ_STRING,
 } ObjType;
 
@@ -43,6 +49,15 @@ typedef struct {
     ObjString* name; // function name
 } ObjFunction;
 
+// native function
+typedef Value (*NativeFn)(int argCount, Value* args);
+
+// native function object
+typedef struct {
+    Obj obj;
+    NativeFn function;
+} ObjNative;
+
 // string object
 struct ObjString {
     Obj obj;
@@ -53,6 +68,9 @@ struct ObjString {
 
 // create a new function
 ObjFunction* newFunction();
+
+// create a native function
+ObjNative* newNative(NativeFn function);
 
 // produce an ObjString with concatenated characters
 ObjString* takeString(char* chars, int length);
