@@ -12,6 +12,8 @@
 // macro to extract object type tag from Value
 #define OBJ_TYPE(value)        (AS_OBJ(value)->type)
 
+// macro to check is a value is a closure
+#define IS_CLOSURE(value)      isObjType(value, OBJ_CLOSURE)
 // macro to check if a value is a string
 #define IS_FUNCTION(value)     isObjType(value, OBJ_FUNCTION)
 // macro to check if a value is a native function
@@ -19,7 +21,9 @@
 // macro to check if a Value is an ObjString*
 #define IS_STRING(value)       isObjType(value, OBJ_STRING)
 
-// cast Value to aon ObjFunction*
+// cast Value to an ObjClosure*
+#define AS_CLOSURE(value)      ((ObjClosure*)AS_OBJ(value))
+// cast Value to an ObjFunction*
 #define AS_FUNCTION(value)     ((ObjFunction*)AS_OBJ(value))
 // extract function pointer from Value representing native function
 #define AS_NATIVE(value) \
@@ -31,6 +35,7 @@
 
 // heap-allocated types
 typedef enum {
+    OBJ_CLOSURE,
     OBJ_FUNCTION,
     OBJ_NATIVE,
     OBJ_STRING,
@@ -65,6 +70,15 @@ struct ObjString {
     char* chars; // array of characters
     uint32_t hash; // string hashcode
 };
+
+// closure struct
+typedef struct {
+    Obj obj;
+    ObjFunction* function;
+} ObjClosure;
+
+// create a new closure
+ObjClosure* newClosure(ObjFunction* function);
 
 // create a new function
 ObjFunction* newFunction();

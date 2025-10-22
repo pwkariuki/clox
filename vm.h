@@ -14,7 +14,7 @@
 
 // function invocation - single ongoing function call
 typedef struct {
-    ObjFunction* function; // function's metadata
+    ObjClosure* closure; // function's metadata
     uint8_t* ip; // return address of the caller's CallFrame
     Value* slots; // first slot function can use on the VM's value stack
 } CallFrame;
