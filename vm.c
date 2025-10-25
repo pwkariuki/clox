@@ -23,6 +23,7 @@ static Value clockNative(int argcount, Value* args) {
 static void resetStack() {
     vm.stackTop = vm.stack;
     vm.frameCount = 0;
+    vm.openUpvalues = NULL;
 }
 
 // report runtime errors
@@ -132,8 +133,36 @@ static bool callValue(Value callee, int argCount) {
 
 // capture local variable getting closed over
 static ObjUpvalue* captureUpvalue(Value* local) {
+    // look for an existing upvalue
+    ObjUpvalue* prevUpvalue = NULL;
+    ObjUpvalue* upvalue = vm.openUpvalues;
+    while (upvalue != NULL && upvalue->location > local) {
+        prevUpvalue = upvalue;
+        upvalue = upvalue->next;
+    }
+    if (upvalue != NULL && upvalue->location == local) {
+        return upvalue; // found existing upvalue
+    }
+
+    // create new upvalue and insert it to maintain order
     ObjUpvalue* createdUpvalue = newUpvalue(local);
+    createdUpvalue->next = upvalue;
+    if (prevUpvalue == NULL) {
+        vm.openUpvalues = createdUpvalue;
+    } else {
+        prevUpvalue->next = createdUpvalue;
+    }
     return createdUpvalue;
+}
+
+// close upvalue and move local from stack to the heap
+static void closeUpvalues(Value* last) {
+    while (vm.openUpvalues != NULL && vm.openUpvalues->location >= last) {
+        ObjUpvalue* upvalue = vm.openUpvalues;
+        upvalue->closed = *upvalue->location;
+        upvalue->location = &upvalue->closed;
+        vm.openUpvalues = upvalue->next;
+    }
 }
 
 // type checking: nil and false are falsey and every other value behaves like true
@@ -325,8 +354,13 @@ static InterpretResult run() {
                 }
                 break;
             }
+            case OP_CLOSE_UPVALUE:
+                closeUpvalues(vm.stackTop - 1);
+                pop(); // free stack slot
+                break;
             case OP_RETURN: {
                 Value result = pop(); // called function return value
+                closeUpvalues(frame->slots); // close open upvalues owned by returning function
                 vm.frameCount--; // discard CallFrame of returning function
                 if (vm.frameCount == 0) {
                     pop();

@@ -25,6 +25,7 @@ typedef struct {
     int frameCount; // callframe height - number of ongoing function calls
     Value stack[STACK_MAX];
     Value* stackTop; // points to where the next value to be pushed will go
+    ObjUpvalue* openUpvalues; // linked list of open upvalues
     Obj* objects; // head to linked list of objects
     Table globals; // hash table of global variables
     Table strings; // hash table of interned strings

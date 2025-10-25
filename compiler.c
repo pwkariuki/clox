@@ -50,6 +50,7 @@ typedef struct {
 typedef struct {
     Token name; // local's lexeme
     int depth; // scope depth where local was declared
+    bool isCaptured; // indication local has been captured by a closure
 } Local;
 
 // upvalue struct
@@ -223,6 +224,7 @@ static void initCompiler(Compiler* compiler, FunctionType type) {
     // clain stack slot zero for the VM's own internal use
     Local* local = &current->locals[current->localCount++];
     local->depth = 0;
+    local->isCaptured = false;
     local->name.start = "";
     local->name.length = 0;
 }
@@ -252,8 +254,12 @@ static void endScope() {
     current->scopeDepth--;
 
     while (current->localCount > 0 &&
-        current->locals[current->localCount -1].depth > current->scopeDepth) {
-        emitByte(OP_POP);
+            current->locals[current->localCount -1].depth > current->scopeDepth) {
+        if (current->locals[current->localCount - 1].isCaptured) {
+            emitByte(OP_CLOSE_UPVALUE); // hoist onto the heap
+        } else {
+           emitByte(OP_POP);
+        }
         current->localCount--;
     }
 }
@@ -417,6 +423,7 @@ static int resolveUpvalue(Compiler* compiler, Token* name) {
 
     int local = resolveLocal(compiler->enclosing, name);
     if (local != -1) { // local variable in enclosing function
+        compiler->enclosing->locals[local].isCaptured = true;
         return addUpvalue(compiler, (uint8_t)local, true);
     }
 
@@ -438,6 +445,7 @@ static void addLocal(Token name) {
     Local* local = &current->locals[current->localCount++];
     local->name = name;
     local->depth = -1; // uninitialized state
+    local->isCaptured = false;
 }
 
 // add to compiler's list of variables in current scope
