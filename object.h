@@ -39,6 +39,7 @@ typedef enum {
     OBJ_FUNCTION,
     OBJ_NATIVE,
     OBJ_STRING,
+    OBJ_UPVALUE,
 } ObjType;
 
 struct Obj {
@@ -72,11 +73,23 @@ struct ObjString {
     uint32_t hash; // string hashcode
 };
 
+// upvalue object
+typedef struct ObjUpvalue {
+    Obj obj;
+    Value* location; // closed-over variable reference
+} ObjUpvalue;
+
 // closure struct
+// contains pointer to dynamically allocated array of pointers to upvalues
 typedef struct {
     Obj obj;
     ObjFunction* function;
+    ObjUpvalue** upvalues;
+    int upvalueCount; // number of upvalues
 } ObjClosure;
+
+// create a new upvalue
+ObjUpvalue* newUpvalue(Value* slot);
 
 // create a new closure
 ObjClosure* newClosure(ObjFunction* function);
