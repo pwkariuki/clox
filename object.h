@@ -50,6 +50,7 @@ struct Obj {
 typedef struct {
     Obj obj;
     int arity; // number of parameters
+    int upvalueCount; // upvalue count
     Chunk chunk; // function's compiled bytecode
     ObjString* name; // function name
 } ObjFunction;
