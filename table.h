@@ -33,6 +33,8 @@ bool tableDelete(Table* table, ObjString* key);
 void tableAddAll(Table* from, Table* to);
 // look for a string in the table
 ObjString* tableFindString(Table* table, const char* chars, int length, uint32_t hash);
+// remove references to unreachable strings in VM's string intern table
+void tableRemoveWhite(Table* table);
 // mark global variables in the VM's hash table
 void markTable(Table* table);
 
