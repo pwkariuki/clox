@@ -44,6 +44,7 @@ typedef enum {
 
 struct Obj {
     ObjType type;
+    bool isMarked; // root marked flag
     struct Obj* next; // intrusive list for memory management
 };
 

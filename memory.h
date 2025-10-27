@@ -30,6 +30,9 @@
 
 void* reallocate(void* pointer, size_t oldSize, size_t newSize);
 
+// gc methods
+void markObject(Obj* object);
+void markValue(Value value);
 void collectGarbage();
 
 // free all heap-allocated objects

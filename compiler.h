@@ -9,5 +9,7 @@
 #include "vm.h"
 
 ObjFunction* compile(const char* source);
+// mark values directly accessible by the compiler
+void markCompilerRoots();
 
 #endif //CLOX_COMPILER_H
