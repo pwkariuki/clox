@@ -29,6 +29,9 @@ typedef struct {
     Obj* objects; // head to linked list of objects
     Table globals; // hash table of global variables
     Table strings; // hash table of interned strings
+    int grayCount; // number of marked objects for the gc
+    int grayCapacity; // capacity of the gray stacked
+    Obj** grayStack; // stack of (gray) marked objects for gc
 } VM;
 
 // result from VM running chunk
