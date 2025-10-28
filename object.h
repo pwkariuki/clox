@@ -12,6 +12,8 @@
 // macro to extract object type tag from Value
 #define OBJ_TYPE(value)        (AS_OBJ(value)->type)
 
+// macro to check is a value is a class
+#define IS_CLASS(value)        isObjType(value, OBJ_CLASS)
 // macro to check is a value is a closure
 #define IS_CLOSURE(value)      isObjType(value, OBJ_CLOSURE)
 // macro to check if a value is a string
@@ -21,6 +23,8 @@
 // macro to check if a Value is an ObjString*
 #define IS_STRING(value)       isObjType(value, OBJ_STRING)
 
+// cast Value to an ObjClass*
+#define AS_CLASS(value)        ((ObjClass*)AS_OBJ(value))
 // cast Value to an ObjClosure*
 #define AS_CLOSURE(value)      ((ObjClosure*)AS_OBJ(value))
 // cast Value to an ObjFunction*
@@ -35,6 +39,7 @@
 
 // heap-allocated types
 typedef enum {
+    OBJ_CLASS,
     OBJ_CLOSURE,
     OBJ_FUNCTION,
     OBJ_NATIVE,
@@ -90,6 +95,15 @@ typedef struct {
     ObjUpvalue** upvalues;
     int upvalueCount; // number of upvalues
 } ObjClosure;
+
+// class object
+typedef struct {
+    Obj obj;
+    ObjString* name; // class name
+} ObjClass;
+
+// create a new class
+ObjClass* newClass(ObjString* name);
 
 // create a new upvalue
 ObjUpvalue* newUpvalue(Value* slot);
