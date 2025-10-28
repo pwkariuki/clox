@@ -380,6 +380,9 @@ static InterpretResult run() {
                 frame = &vm.frames[vm.frameCount - 1]; // update current frame
                 break;
             }
+            case OP_CLASS:
+                push(OBJ_VAL(newClass(READ_STRING())));
+                break;
         }
     }
 #undef BINARY_OP
