@@ -26,6 +26,8 @@ typedef struct {
     Value stack[STACK_MAX];
     Value* stackTop; // points to where the next value to be pushed will go
     ObjUpvalue* openUpvalues; // linked list of open upvalues
+    size_t bytesAllocated; // total bytes of VM allocated managed memory
+    size_t nextGC; // threshold to trigger the next collection
     Obj* objects; // head to linked list of objects
     Table globals; // hash table of global variables
     Table strings; // hash table of interned strings
