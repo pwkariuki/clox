@@ -13,6 +13,8 @@
 // macro to extract object type tag from Value
 #define OBJ_TYPE(value)        (AS_OBJ(value)->type)
 
+// macro to check is a value is a bound method
+#define IS_BOUND_METHOD(value) isObjType(value, OBJ_BOUND_METHOD)
 // macro to check is a value is a class instance
 #define IS_INSTANCE(value)     isObjType(value, OBJ_INSTANCE)
 // macro to check is a value is a class
@@ -26,6 +28,8 @@
 // macro to check if a Value is an ObjString*
 #define IS_STRING(value)       isObjType(value, OBJ_STRING)
 
+// cast Value to an ObjBoundMethod*
+#define AS_BOUND_METHOD(value) ((ObjBoundMethod*)AS_OBJ(value))
 // cast Value to an ObjInstance*
 #define AS_INSTANCE(value)    ((ObjInstance*)AS_OBJ(value))
 // cast Value to an ObjClass*
@@ -44,6 +48,7 @@
 
 // heap-allocated types
 typedef enum {
+    OBJ_BOUND_METHOD,
     OBJ_CLASS,
     OBJ_CLOSURE,
     OBJ_FUNCTION,
@@ -116,6 +121,15 @@ typedef struct {
     Table fields; // class fields
 } ObjInstance;
 
+// bound method object
+typedef struct {
+    Obj obj;
+    Value receiver; // object the method is going to operate on
+    ObjClosure* method; // method
+} ObjBoundMethod;
+
+// create a new bound method
+ObjBoundMethod* newBoundMethod(Value receiver, ObjClosure* method);
 // create a new class instance
 ObjInstance* newInstance(ObjClass* klass);
 
