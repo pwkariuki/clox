@@ -13,7 +13,7 @@
 #define DEBUG_TRACE_EXECUTION
 
 // run gc as often as possible
-#define DEBUG_STRESS_GC
+// #define DEBUG_STRESS_GC
 // log gc
 #define DEBUG_LOG_GC
 
