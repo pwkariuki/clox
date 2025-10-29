@@ -316,7 +316,7 @@ static void call(bool canAssign) {
     emitBytes(OP_CALL, argCount);
 }
 
-// parse set and get expression - sort of an infix operation
+// parse set and get expression - sort of infix operation
 static void dot(bool canAssign) {
     consume(TOKEN_IDENTIFIER, "Expect property name after '.'.");
     uint8_t name = identifierConstant(&parser.previous);
@@ -673,16 +673,36 @@ static void function(FunctionType type) {
     }
 }
 
+// compile method declarations
+static void method() {
+    // compile method name
+    consume(TOKEN_IDENTIFIER, "Expect method name.");
+    uint8_t constant = identifierConstant(&parser.previous);
+
+    // method body
+    FunctionType type = TYPE_FUNCTION;
+    function(type);
+
+    emitBytes(OP_METHOD, constant);
+}
+
 static void classDeclaration() {
     consume(TOKEN_IDENTIFIER, "Expect class name.");
+    Token className = parser.previous;
     uint8_t nameConstant = identifierConstant(&parser.previous);
     declareVariable();
 
     emitBytes(OP_CLASS, nameConstant);
     defineVariable(nameConstant);
 
+    namedVariable(className, false); // load class name onto the stack for method binding
     consume(TOKEN_LEFT_BRACE, "Expect '{' before class body.");
+    // check for and compile method declarations
+    while (!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)) {
+        method();
+    }
     consume(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
+    emitByte(OP_POP); // pop class name after method binding
 }
 
 // create and store function in a newly declared variable

@@ -106,6 +106,7 @@ typedef struct {
 typedef struct {
     Obj obj;
     ObjString* name; // class name
+    Table methods; // method names -> ObjClosure hash table for methods
 } ObjClass;
 
 // class instance object
