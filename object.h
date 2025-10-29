@@ -7,11 +7,14 @@
 
 #include "chunk.h"
 #include "common.h"
+#include "table.h"
 #include "value.h"
 
 // macro to extract object type tag from Value
 #define OBJ_TYPE(value)        (AS_OBJ(value)->type)
 
+// macro to check is a value is a class instance
+#define IS_INSTANCE(value)     isObjType(value, OBJ_INSTANCE)
 // macro to check is a value is a class
 #define IS_CLASS(value)        isObjType(value, OBJ_CLASS)
 // macro to check is a value is a closure
@@ -23,6 +26,8 @@
 // macro to check if a Value is an ObjString*
 #define IS_STRING(value)       isObjType(value, OBJ_STRING)
 
+// cast Value to an ObjInstance*
+#define AS_INSTANCE(value)    ((ObjInstance*)AS_OBJ(value))
 // cast Value to an ObjClass*
 #define AS_CLASS(value)        ((ObjClass*)AS_OBJ(value))
 // cast Value to an ObjClosure*
@@ -42,6 +47,7 @@ typedef enum {
     OBJ_CLASS,
     OBJ_CLOSURE,
     OBJ_FUNCTION,
+    OBJ_INSTANCE,
     OBJ_NATIVE,
     OBJ_STRING,
     OBJ_UPVALUE,
@@ -101,6 +107,16 @@ typedef struct {
     Obj obj;
     ObjString* name; // class name
 } ObjClass;
+
+// class instance object
+typedef struct {
+    Obj obj;
+    ObjClass* klass; // instances know their class
+    Table fields; // class fields
+} ObjInstance;
+
+// create a new class instance
+ObjInstance* newInstance(ObjClass* klass);
 
 // create a new class
 ObjClass* newClass(ObjString* name);
