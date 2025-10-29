@@ -271,6 +271,7 @@ static void statement();
 static void declaration();
 static ParseRule* getRule(TokenType type);
 static void parsePrecedence(Precedence precedence);
+static uint8_t identifierConstant(Token* name);
 
 // compile the right operand of an infix expression
 static void binary(bool canAssign) {
@@ -313,6 +314,19 @@ static uint8_t argumentList() {
 static void call(bool canAssign) {
     uint8_t argCount = argumentList();
     emitBytes(OP_CALL, argCount);
+}
+
+// parse set and get expression - sort of an infix operation
+static void dot(bool canAssign) {
+    consume(TOKEN_IDENTIFIER, "Expect property name after '.'.");
+    uint8_t name = identifierConstant(&parser.previous);
+
+    if (canAssign && match(TOKEN_EQUAL)) {
+        expression();
+        emitBytes(OP_SET_PROPERTY, name);
+    } else {
+        emitBytes(OP_GET_PROPERTY, name);
+    }
 }
 
 // parse `false`, `nil` and `true` in prefix positions
@@ -519,7 +533,7 @@ ParseRule rules[] = {
   [TOKEN_LEFT_BRACE]    = {NULL,     NULL,   PREC_NONE},
   [TOKEN_RIGHT_BRACE]   = {NULL,     NULL,   PREC_NONE},
   [TOKEN_COMMA]         = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_DOT]           = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_DOT]           = {NULL,     dot,    PREC_CALL},
   [TOKEN_MINUS]         = {unary,    binary, PREC_TERM},
   [TOKEN_PLUS]          = {NULL,     binary, PREC_TERM},
   [TOKEN_SEMICOLON]     = {NULL,     NULL,   PREC_NONE},
