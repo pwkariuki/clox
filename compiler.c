@@ -63,7 +63,8 @@ typedef struct {
 // function type enum
 typedef enum {
     TYPE_FUNCTION,
-    TYPE_SCRIPT
+    TYPE_METHOD,
+    TYPE_SCRIPT,
 } FunctionType;
 
 // compiler struct
@@ -77,9 +78,15 @@ typedef struct Compiler {
     int scopeDepth; // number of blocks surrounding the compiling code, 0 for global
 } Compiler;
 
+// ClassCompiler struct
+typedef struct ClassCompiler {
+    struct ClassCompiler* enclosing; // enclosing class compiler
+} ClassCompiler;
+
 Parser parser; // receive scanned tokens
 Compiler* current = NULL; // global compiler to track variable scope
 Chunk* compilingChunk; // global chuk pointer
+ClassCompiler* currentClass = NULL; // current innermost class being compiled
 
 static Chunk* currentChunk() {
     return &current->function->chunk;
@@ -226,8 +233,15 @@ static void initCompiler(Compiler* compiler, FunctionType type) {
     Local* local = &current->locals[current->localCount++];
     local->depth = 0;
     local->isCaptured = false;
-    local->name.start = "";
-    local->name.length = 0;
+    // methods repurpose first slot to store the receiver
+    // the instance that `this` is bound to
+    if (type != TYPE_FUNCTION) {
+        local->name.start = "this";
+        local->name.length = 4;
+    } else {
+        local->name.start = "";
+        local->name.length = 0;
+    }
 }
 
 // wrap up after compiling the chunk
@@ -511,6 +525,17 @@ static void variable(bool canAssign) {
     namedVariable(parser.previous, canAssign);
 }
 
+// compile `this` like a local variable
+// closures inside methods referencing this will capture
+// the receiver in an upvalue
+static void this_(bool canAssign) {
+    if (currentClass == NULL) {
+        error("Can't use 'this' outside of a class.");
+        return;
+    }
+    variable(false);
+}
+
 // compile unary expressions
 static void unary(bool canAssign) {
     TokenType operatorType = parser.previous.type;
@@ -562,7 +587,7 @@ ParseRule rules[] = {
   [TOKEN_PRINT]         = {NULL,     NULL,   PREC_NONE},
   [TOKEN_RETURN]        = {NULL,     NULL,   PREC_NONE},
   [TOKEN_SUPER]         = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_THIS]          = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_THIS]          = {this_,    NULL,   PREC_NONE},
   [TOKEN_TRUE]          = {literal,  NULL,   PREC_NONE},
   [TOKEN_VAR]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_WHILE]         = {NULL,     NULL,   PREC_NONE},
@@ -680,7 +705,7 @@ static void method() {
     uint8_t constant = identifierConstant(&parser.previous);
 
     // method body
-    FunctionType type = TYPE_FUNCTION;
+    FunctionType type = TYPE_METHOD;
     function(type);
 
     emitBytes(OP_METHOD, constant);
@@ -695,6 +720,10 @@ static void classDeclaration() {
     emitBytes(OP_CLASS, nameConstant);
     defineVariable(nameConstant);
 
+    ClassCompiler classCompiler;
+    classCompiler.enclosing = currentClass;
+    currentClass = &classCompiler;
+
     namedVariable(className, false); // load class name onto the stack for method binding
     consume(TOKEN_LEFT_BRACE, "Expect '{' before class body.");
     // check for and compile method declarations
@@ -703,6 +732,8 @@ static void classDeclaration() {
     }
     consume(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
     emitByte(OP_POP); // pop class name after method binding
+
+    currentClass = currentClass->enclosing;
 }
 
 // create and store function in a newly declared variable
