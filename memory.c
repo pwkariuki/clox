@@ -187,6 +187,7 @@ static void markRoots() {
 
     markTable(&vm.globals);
     markCompilerRoots();
+    markObject((Obj*)vm.initString);
 }
 
 // pull out gray object, traverse their references and mark them black

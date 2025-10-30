@@ -25,6 +25,7 @@ typedef struct {
     int frameCount; // callframe height - number of ongoing function calls
     Value stack[STACK_MAX];
     Value* stackTop; // points to where the next value to be pushed will go
+    ObjString* initString; // interned `init` string for fast lookup
     ObjUpvalue* openUpvalues; // linked list of open upvalues
     size_t bytesAllocated; // total bytes of VM allocated managed memory
     size_t nextGC; // threshold to trigger the next collection
