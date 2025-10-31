@@ -132,25 +132,19 @@ typedef struct {
 ObjBoundMethod* newBoundMethod(Value receiver, ObjClosure* method);
 // create a new class instance
 ObjInstance* newInstance(ObjClass* klass);
-
 // create a new class
 ObjClass* newClass(ObjString* name);
-
 // create a new upvalue
 ObjUpvalue* newUpvalue(Value* slot);
-
 // create a new closure
 ObjClosure* newClosure(ObjFunction* function);
-
 // create a new function
 ObjFunction* newFunction();
-
 // create a native function
 ObjNative* newNative(NativeFn function);
 
 // produce an ObjString with concatenated characters
 ObjString* takeString(char* chars, int length);
-
 // create a string
 ObjString* copyString(const char* chars, int length);
 

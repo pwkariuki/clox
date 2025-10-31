@@ -38,6 +38,7 @@ typedef enum {
     OP_JUMP_IF_FALSE,
     OP_LOOP,
     OP_CALL,
+    OP_INVOKE, // superinstruction -> OP_GET_PROPERTY and OP_CALL
     OP_CLOSURE,
     OP_CLOSE_UPVALUE,
     OP_RETURN,
