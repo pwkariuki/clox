@@ -82,6 +82,7 @@ typedef struct Compiler {
 // ClassCompiler struct
 typedef struct ClassCompiler {
     struct ClassCompiler* enclosing; // enclosing class compiler
+    bool hasSuperclass; // if current class has a super class
 } ClassCompiler;
 
 Parser parser; // receive scanned tokens
@@ -534,6 +535,14 @@ static void variable(bool canAssign) {
     namedVariable(parser.previous, canAssign);
 }
 
+// create synthetic token for the given constant string
+static Token syntheticToken(const char* text) {
+    Token token;
+    token.start = text;
+    token.length = (int)strlen(text);
+    return token;
+}
+
 // compile `this` like a local variable
 // closures inside methods referencing this will capture
 // the receiver in an upvalue
@@ -734,6 +743,7 @@ static void classDeclaration() {
     defineVariable(nameConstant);
 
     ClassCompiler classCompiler;
+    classCompiler.hasSuperclass = false;
     classCompiler.enclosing = currentClass;
     currentClass = &classCompiler;
 
@@ -746,7 +756,13 @@ static void classDeclaration() {
         }
         namedVariable(className, false);
         emitByte(OP_INHERIT);
+        classCompiler.hasSuperclass = true;
     }
+
+    // store superclass as local variable
+    beginScope();
+    addLocal(syntheticToken("super"));
+    defineVariable(0);
 
     namedVariable(className, false); // load class name onto the stack for method binding
     consume(TOKEN_LEFT_BRACE, "Expect '{' before class body.");
@@ -756,6 +772,10 @@ static void classDeclaration() {
     }
     consume(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
     emitByte(OP_POP); // pop class name after method binding
+
+    if (classCompiler.hasSuperclass) { // discard super variable
+        endScope();
+    }
 
     currentClass = currentClass->enclosing;
 }
