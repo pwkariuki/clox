@@ -556,8 +556,15 @@ static void super_(bool canAssign) {
     uint8_t name = identifierConstant(&parser.previous);
     // look up the receiver `this` and superclass from its `super` variable
     namedVariable(syntheticToken("this"), false);
-    namedVariable(syntheticToken("super"), false);
-    emitBytes(OP_GET_SUPER, name);
+    if (match(TOKEN_LEFT_PAREN)) { // access and call
+        uint8_t argCount = argumentList();
+        namedVariable(syntheticToken("super"), false);
+        emitBytes(OP_SUPER_INVOKE, name);
+        emitByte(argCount);
+    } else { // access
+        namedVariable(syntheticToken("this"), false);
+        emitByte(OP_GET_SUPER);
+    }
 }
 
 // compile `this` like a local variable
