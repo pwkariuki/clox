@@ -9,13 +9,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define DEBUG_PRINT_CODE
-#define DEBUG_TRACE_EXECUTION
+// #define DEBUG_PRINT_CODE
+// #define DEBUG_TRACE_EXECUTION
 
 // run gc as often as possible
 // #define DEBUG_STRESS_GC
 // log gc
-#define DEBUG_LOG_GC
+// #define DEBUG_LOG_GC
 
 // limit the number of local variables you can have in scope
 #define UINT8_COUNT (UINT8_MAX + 1)
